@@ -1,0 +1,8 @@
+.git
+**/node_modules
+**/.next
+backend/data/cache
+**/__pycache__
+**/*.pyc
+*.md
+!README.md

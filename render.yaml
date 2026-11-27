@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: prerun
+    runtime: docker
+    plan: starter
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: BACKEND_URL
+        value: http://127.0.0.1:8765

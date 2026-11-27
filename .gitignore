@@ -1,0 +1,11 @@
+node_modules
+.next
+frontend/.next
+frontend/tsconfig.tsbuildinfo
+backend/data/cache
+backend/data/ledger.sqlite
+__pycache__
+*.pyc
+.venv
+.env
+.DS_Store
