@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useReducedMotion } from "framer-motion";
+import { TabButton } from "@/components/Motion";
 import type { Bar, Explain, Line } from "@/lib/types";
 import { price as fmtPrice } from "@/lib/format";
 
@@ -57,6 +59,9 @@ export default function PriceChart({
   const [drawings, setDrawings] = useState<Drawing[]>([]);
   const [draft, setDraft] = useState<Drawing | null>(null);
   const [hover, setHover] = useState<number | null>(null);
+  const [chartShown, setChartShown] = useState(true);
+  const reduceMotion = useReducedMotion();
+  const rangeFadeReady = useRef(false);
 
   useEffect(() => {
     try {
@@ -71,6 +76,20 @@ export default function PriceChart({
   useEffect(() => {
     localStorage.setItem(storageKey, JSON.stringify(drawings));
   }, [drawings, storageKey]);
+
+  useEffect(() => {
+    if (!rangeFadeReady.current) {
+      rangeFadeReady.current = true;
+      return;
+    }
+    if (reduceMotion) {
+      setChartShown(true);
+      return;
+    }
+    setChartShown(false);
+    const timer = window.setTimeout(() => setChartShown(true), 40);
+    return () => window.clearTimeout(timer);
+  }, [range, reduceMotion]);
 
   useEffect(() => {
     const node = wrapRef.current;
@@ -177,16 +196,9 @@ export default function PriceChart({
     <div>
       <div className="flex gap-1.5 overflow-x-auto pb-3">
         {RANGES.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => onRange(item.id)}
-            className={`rounded-full px-3 py-1.5 text-[13px] font-semibold transition ${
-              range === item.id ? "bg-ink text-white" : "bg-[#f2f4f6] text-sub hover:bg-[#e9edf1]"
-            }`}
-          >
+          <TabButton key={item.id} active={range === item.id} layoutId="chart-range" idleClass="bg-[#f2f4f6]" onClick={() => onRange(item.id)}>
             {item.label}
-          </button>
+          </TabButton>
         ))}
       </div>
       <div className="mb-3 flex flex-wrap gap-1.5">
@@ -215,7 +227,7 @@ export default function PriceChart({
               setTool(id);
               setDraft(null);
             }}
-            className={`rounded-xl px-3 py-1.5 text-[13px] font-semibold transition ${
+            className={`rounded-xl px-3 py-1.5 text-[13px] font-semibold transition duration-300 ease-out ${
               tool === id ? "bg-[#e8f3ff] text-down" : "text-sub hover:bg-[#f2f4f6]"
             }`}
           >
@@ -234,7 +246,7 @@ export default function PriceChart({
           {hoverBar.t} · 시 {fmtPrice(hoverBar.o, currency)} 고 {fmtPrice(hoverBar.h, currency)} 저 {fmtPrice(hoverBar.l, currency)} 종 {fmtPrice(hoverBar.c, currency)}
         </p>
       )}
-      <div ref={wrapRef} className="transition-opacity duration-500">
+      <div ref={wrapRef} className={`transition-opacity duration-300 ease-out ${chartShown ? "opacity-100" : "opacity-0"}`}>
         {bars.length < 2 ? (
           <p className="rounded-2xl bg-[#f7f8fa] px-4 py-10 text-center text-[14px] text-sub">이 구간 봉이 없습니다.</p>
         ) : (

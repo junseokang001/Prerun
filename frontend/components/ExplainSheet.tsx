@@ -1,7 +1,8 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useEffect } from "react";
+import { softEase } from "@/components/Motion";
 import type { Explain } from "@/lib/types";
 
 export default function ExplainSheet({
@@ -11,13 +12,21 @@ export default function ExplainSheet({
   item: Explain | null;
   onClose: () => void;
 }) {
+  const reduce = useReducedMotion();
+  const transition = reduce ? { duration: 0 } : { duration: 0.42, ease: softEase };
+
   useEffect(() => {
     if (!item) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
     };
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = previous;
+      window.removeEventListener("keydown", onKey);
+    };
   }, [item, onClose]);
 
   return (
@@ -25,19 +34,20 @@ export default function ExplainSheet({
       {item && (
         <motion.div
           className="fixed inset-0 z-50 flex items-end justify-center sm:items-center"
-          initial={{ backgroundColor: "rgba(15,18,22,0)" }}
+          initial={reduce ? false : { backgroundColor: "rgba(15,18,22,0)" }}
           animate={{ backgroundColor: "rgba(15,18,22,0.42)" }}
           exit={{ backgroundColor: "rgba(15,18,22,0)" }}
+          transition={transition}
           onClick={onClose}
         >
           <motion.div
             role="dialog"
             aria-modal="true"
             aria-labelledby="explain-title"
-            initial={{ y: 36, opacity: 0 }}
+            initial={reduce ? false : { y: 28, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 24, opacity: 0 }}
-            transition={{ type: "spring", stiffness: 380, damping: 34 }}
+            exit={reduce ? { opacity: 1, y: 0 } : { y: 16, opacity: 0 }}
+            transition={transition}
             className="max-h-[86vh] w-full max-w-lg overflow-y-auto rounded-t-[28px] bg-white px-5 pb-8 pt-4 shadow-card sm:rounded-[28px]"
             onClick={(event) => event.stopPropagation()}
           >

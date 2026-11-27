@@ -7,6 +7,7 @@ import { Disclaimer, Move, SentimentMark } from "@/components/Bits";
 import WatchButton from "@/components/WatchButton";
 import { readWatch, writeWatch } from "@/lib/watchlist";
 import ExplainSheet from "@/components/ExplainSheet";
+import { SoftSwap } from "@/components/Motion";
 import PriceChart from "@/components/PriceChart";
 import { marketLabel, pct, price, qty, when } from "@/lib/format";
 import type { Explain, StockDetail } from "@/lib/types";
@@ -66,7 +67,7 @@ export default function StockPage() {
   return (
     <main className="mx-auto min-h-screen max-w-3xl px-4 pb-16 pt-4 sm:px-6">
       <div className="mb-3 flex items-center justify-between">
-        <Link href="/" className="text-[14px] font-semibold text-sub">
+        <Link href="/" className="text-[14px] font-semibold text-sub transition-colors duration-300 hover:text-ink">
           ← 프리런
         </Link>
         <div className="flex items-center gap-2">
@@ -74,6 +75,7 @@ export default function StockPage() {
           <span className="text-[13px] font-bold">PreRun</span>
         </div>
       </div>
+      <SoftSwap id={data ? `ready-${symbol}` : error ? "error" : "loading"}>
       {loading && !data && (
         <div className="space-y-3">
           <div className="skel h-28 rounded-[28px]" />
@@ -82,7 +84,7 @@ export default function StockPage() {
       )}
       {error && !data && <p className="rounded-[28px] bg-white p-5 text-[14px]">{error}</p>}
       {data && (
-        <div className={off ? "transition duration-700" : ""}>
+        <div className={off ? "turned-off" : ""}>
           <section className={`rounded-[28px] bg-white p-5 shadow-card ${off ? "opacity-80" : ""}`}>
             <div className="flex items-center gap-2">
               <span className={off ? "dot-off" : "dot-on"} />
@@ -314,6 +316,7 @@ export default function StockPage() {
           </footer>
         </div>
       )}
+      </SoftSwap>
       <ExplainSheet item={explain} onClose={() => setExplain(null)} />
     </main>
   );

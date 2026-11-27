@@ -1,10 +1,10 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Disclaimer, Move, SentimentMark, Spark } from "@/components/Bits";
 import ExplainSheet from "@/components/ExplainSheet";
+import { FadeIn, SoftSwap, TabButton } from "@/components/Motion";
 import FlowList from "@/components/FlowList";
 import PageDeck, { type DeckPage } from "@/components/PageDeck";
 import WatchButton from "@/components/WatchButton";
@@ -159,11 +159,12 @@ export default function HomeClient() {
           </p>
           <div className="mb-3 flex flex-wrap gap-2">
             {MARKETS.map((item) => (
-              <button key={item.id} type="button" onClick={() => setMarket(item.id)} className={`rounded-full px-3 py-1.5 text-[13px] font-semibold ${market === item.id ? "bg-ink text-white" : "bg-white text-sub"}`}>
+              <TabButton key={item.id} active={market === item.id} layoutId={`market-tab-${index}`} onClick={() => setMarket(item.id)}>
                 {item.label}
-              </button>
+              </TabButton>
             ))}
           </div>
+          <SoftSwap id={`${warming ? "warming" : group.length === 0 ? "empty" : "list"}-${market}`}>
           {warming ? (
             <div className="grid gap-3 sm:grid-cols-2">{[0, 1].map((i) => <div key={i} className="skel h-40 rounded-[28px]" />)}</div>
           ) : group.length === 0 ? (
@@ -173,18 +174,20 @@ export default function HomeClient() {
             </div>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2">
-              {group.map((card) => (
-                <CandidateCard
-                  key={card.symbol}
-                  card={card}
-                  watched={watch.some((item) => item.symbol === card.symbol)}
-                  onWatch={() => toggleWatch(card.symbol)}
-                  onOpen={() => router.push(`/stock/${encodeURIComponent(card.symbol)}`)}
-                  onExplain={setExplain}
-                />
+              {group.map((card, cardIndex) => (
+                <FadeIn key={card.symbol} delay={Math.min(cardIndex, 4) * 0.045}>
+                  <CandidateCard
+                    card={card}
+                    watched={watch.some((item) => item.symbol === card.symbol)}
+                    onWatch={() => toggleWatch(card.symbol)}
+                    onOpen={() => router.push(`/stock/${encodeURIComponent(card.symbol)}`)}
+                    onExplain={setExplain}
+                  />
+                </FadeIn>
               ))}
             </div>
           )}
+          </SoftSwap>
         </div>
       ),
     });
@@ -199,9 +202,9 @@ export default function HomeClient() {
           {group.length === 0 ? (
             <p className="rounded-[28px] bg-white px-5 py-8 text-[14px] text-sub">별표를 누르면 여기에 쌓입니다.</p>
           ) : (
-            group.map(({ saved, row }) =>
+            group.map(({ saved, row }, rowIndex) =>
               row ? (
-                <article key={row.symbol} className={`rounded-[28px] bg-white p-4 shadow-card ${row.status === "demoted" ? "turned-off" : ""}`}>
+                <FadeIn as="article" key={row.symbol} delay={Math.min(rowIndex, 4) * 0.04} className={`rounded-[28px] bg-white p-4 shadow-card ${row.status === "demoted" ? "turned-off" : ""}`}>
                   <div className="flex items-start justify-between gap-3">
                     <button type="button" onClick={() => router.push(`/stock/${encodeURIComponent(row.symbol)}`)} className="min-w-0 flex-1 text-left">
                       <div className="flex items-center gap-2">
@@ -217,7 +220,7 @@ export default function HomeClient() {
                     </button>
                     <WatchButton on onToggle={() => toggleWatch(row.symbol)} />
                   </div>
-                </article>
+                </FadeIn>
               ) : null,
             )
           )}
@@ -229,12 +232,16 @@ export default function HomeClient() {
     pages.push({
       id: `industry-${index}`,
       title: `업종 흐름 ${index + 1}/${all.length}`,
-      node: sectors?.status === "error" ? (
-        <p className="rounded-[28px] bg-white px-5 py-8 text-[14px]">데이터 없음. {sectors.error}</p>
-      ) : !sectors || sectors.status === "warming" ? (
-        <div className="skel h-40 rounded-[28px]" />
-      ) : (
-        <FlowList groups={group} empty="업종 목록이 비어 있습니다." />
+      node: (
+        <SoftSwap id={sectors?.status === "error" ? "error" : !sectors || sectors.status === "warming" ? "warming" : "ready"}>
+          {sectors?.status === "error" ? (
+            <p className="rounded-[28px] bg-white px-5 py-8 text-[14px]">데이터 없음. {sectors.error}</p>
+          ) : !sectors || sectors.status === "warming" ? (
+            <div className="skel h-40 rounded-[28px]" />
+          ) : (
+            <FlowList groups={group} empty="업종 목록이 비어 있습니다." />
+          )}
+        </SoftSwap>
       ),
     });
   });
@@ -362,7 +369,9 @@ export default function HomeClient() {
           typeof item === "number" ? (
             <div key={index} className="skel h-[84px] rounded-3xl" />
           ) : (
-            <IndexCard key={item.id} item={item} />
+            <FadeIn key={item.id} delay={index * 0.04} y={8}>
+              <IndexCard item={item} />
+            </FadeIn>
           ),
         )}
       </section>
@@ -372,6 +381,7 @@ export default function HomeClient() {
           <h2 className="text-[15px] font-bold">시장 뉴스</h2>
           <span className="text-[12px] text-sub">요약 {newsMode === "LLM" ? "LLM" : "규칙"}</span>
         </div>
+        <SoftSwap id={newsError && !news.length ? "news-error" : news.length === 0 ? "news-wait" : "news"}>
         {newsError && !news.length ? (
           <p className="text-[14px] text-sub">뉴스를 가져오지 못했습니다. {newsError}</p>
         ) : news.length === 0 ? (
@@ -381,8 +391,8 @@ export default function HomeClient() {
           </div>
         ) : (
           <ul className="divide-y divide-[#f2f4f6]">
-            {news.slice(0, 2).map((item) => (
-              <li key={item.url + item.title} className="flex gap-3 py-3">
+            {news.slice(0, 2).map((item, newsIndex) => (
+              <FadeIn as="li" key={item.url + item.title} y={6} delay={newsIndex * 0.04} className="flex gap-3 py-3">
                 <SentimentMark sentiment={item.sentiment} onClick={() => setExplain(item.explain)} />
                 <div className="min-w-0 flex-1">
                   <a href={item.url} target="_blank" rel="noreferrer" className="block text-[14px] font-semibold leading-snug hover:underline">
@@ -407,10 +417,11 @@ export default function HomeClient() {
                     </div>
                   )}
                 </div>
-              </li>
+              </FadeIn>
             ))}
           </ul>
         )}
+        </SoftSwap>
       </section>
       </div>
 

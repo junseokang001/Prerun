@@ -1,20 +1,32 @@
 "use client";
 
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { softEase } from "@/components/Motion";
 
 export type DeckPage = { id: string; title: string; node: React.ReactNode };
 
 export default function PageDeck({ pages }: { pages: DeckPage[] }) {
   const scroller = useRef<HTMLDivElement>(null);
+  const reduceRef = useRef(false);
   const [index, setIndex] = useState(0);
   const [wide, setWide] = useState(false);
+  const reduce = useReducedMotion();
 
   useEffect(() => {
     const media = window.matchMedia("(min-width: 768px)");
-    const apply = () => setWide(media.matches);
+    const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const apply = () => {
+      setWide(media.matches);
+      reduceRef.current = motion.matches;
+    };
     apply();
     media.addEventListener("change", apply);
-    return () => media.removeEventListener("change", apply);
+    motion.addEventListener("change", apply);
+    return () => {
+      media.removeEventListener("change", apply);
+      motion.removeEventListener("change", apply);
+    };
   }, []);
 
   const go = useCallback(
@@ -22,7 +34,7 @@ export default function PageDeck({ pages }: { pages: DeckPage[] }) {
       const node = scroller.current;
       if (!node || pages.length === 0) return;
       const clamped = Math.max(0, Math.min(pages.length - 1, next));
-      node.scrollTo({ left: clamped * node.clientWidth, behavior: "smooth" });
+      node.scrollTo({ left: clamped * node.clientWidth, behavior: reduceRef.current ? "auto" : "smooth" });
       setIndex(clamped);
     },
     [pages.length],
@@ -62,14 +74,27 @@ export default function PageDeck({ pages }: { pages: DeckPage[] }) {
   return (
     <div className="relative mt-3">
       <div className="mb-2 flex items-center justify-between gap-3">
-        <p className="text-[14px] font-bold">{pages[index]?.title}</p>
+        <div className="relative h-5 min-w-0 flex-1">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.p
+              key={pages[index]?.id}
+              className="absolute inset-x-0 top-0 truncate text-[14px] font-bold"
+              initial={reduce ? false : { opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={reduce ? { opacity: 1, y: 0 } : { opacity: 0, y: -4 }}
+              transition={{ duration: reduce ? 0 : 0.28, ease: softEase }}
+            >
+              {pages[index]?.title}
+            </motion.p>
+          </AnimatePresence>
+        </div>
         <div className="flex max-w-[46%] flex-wrap justify-end gap-1.5">
           {pages.map((page, pageIndex) => (
             <button
               key={page.id}
               type="button"
               onClick={() => go(pageIndex)}
-              className={`h-1.5 rounded-full transition-all ${pageIndex === index ? "w-5 bg-ink" : "w-1.5 bg-[#d1d6db]"}`}
+              className={`h-1.5 rounded-full transition-all duration-300 ease-out ${pageIndex === index ? "w-5 bg-ink" : "w-1.5 bg-[#d1d6db]"}`}
               aria-label={page.title}
             />
           ))}
@@ -77,7 +102,7 @@ export default function PageDeck({ pages }: { pages: DeckPage[] }) {
       </div>
       <div
         ref={scroller}
-        className="flex snap-x snap-mandatory overflow-x-auto scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="flex snap-x snap-mandatory overflow-x-auto scroll-smooth motion-reduce:scroll-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {pages.map((page) => (
           <section key={page.id} className="w-full shrink-0 snap-start snap-always">
